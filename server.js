@@ -85,7 +85,6 @@ app.get('/get-vk-token', async (req, res) => {
 });
 
 app.post('/api/auth/callback', async (req, res) => {
-  const videoFilePath = './myVideo.mp4'; // Change this to your desired file path
   try {
     res.set({
       'Connection': 'keep-alive',
@@ -126,7 +125,7 @@ app.post('/api/auth/callback', async (req, res) => {
     const form = new FormData();
     form.append('name', 'My Video testing again');
     // Create a writable stream to save the video to disk
-    const videoBuffer = [];
+const videoFilePath = './myVideo.mp4'; // Change this to your desired file path
     // Fetch the stream object from Google Drive
     const fileStream = drive.files.get(
       { fileId, alt: "media" },
@@ -136,53 +135,28 @@ app.post('/api/auth/callback', async (req, res) => {
       }
     ).then(res =>{
       console.log('completely received')
-      form.append('video_file', res.data);
-      // Pipe the Google Drive stream to the video file on disk
-      // Calculate the total length of the form data
-  let totalLength = 0;
-
-  // Calculate the length of each part and add to the total
-  form.forEach((value, key) => {
-    if (typeof value === 'string' || value instanceof Buffer) {
-      totalLength += Buffer.byteLength(value);
-    } else if (value && typeof value.pipe === 'function') {
-      // Calculate the length of the stream manually
-      totalLength += value.headers['content-length'];
-    }
-  });
+      form.append('video_file',res?.data)
       console.log('Form data ready for upload.');
       // Send the multipart/form-data request to the VK API
       console.log('Send the multipart/form-data request to the VK API')
-       // Calculate the total length of the form data
-  form.getLength(async (err, length) => {
-    if (err) {
-      console.error('Error calculating form data length:', err);
-      return res.json({ error: err }).status(500);
-    }
+      axios.post(endpoint, form, {
+          headers: {
+            ...form.getHeaders(),
+            'Content-Length': form.getLengthSync(),
+          },
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity,
+        })
+        .then(response => console.log(response.data))
+        .catch(error => console.error(error));
 
-   // Update the Content-Length header
-   const headers = {
-    ...form.getHeaders(),
-    'Content-Length': totalLength
-  };
-    axios.post(endpoint, form, {
-        headers:headers,
-        maxContentLength: Infinity,
-        maxBodyLength: Infinity,
-      })
-      .then(response => {
-        console.log(response.data)
-      return res.send(response.data)
-      })
-      .catch(error => {
-        console.error(error)
-        return res.json({ error: error}).status(500)
-      });
-    return res.data
-    
-  })
- 
+      return res.data
     });
+    (await fileStream).on('data',async(chunk)=>{
+      console.log('data ',chunk?.length)
+    })
+
+
 
 
     // Pipe the stream to the form object and then to the VK API endpoint
@@ -198,7 +172,6 @@ app.post('/api/auth/callback', async (req, res) => {
     //   }
     // );
   } catch (error) {
-    
     console.error('Error uploading video to VK API', error);
     res.status(500).send('Error uploading video to VK API');
   }
