@@ -142,23 +142,35 @@ app.post('/api/auth/callback', async (req, res) => {
       console.log('Form data ready for upload.');
       // Send the multipart/form-data request to the VK API
       console.log('Send the multipart/form-data request to the VK API')
-      axios.post(endpoint, form, {
-          headers: {
-            ...form.getHeaders(),
-            'Content-Length': form.getLengthSync(),
-          },
-          maxContentLength: Infinity,
-          maxBodyLength: Infinity,
-        })
-        .then(response => {
-          console.log(response.data)
-        return res.send(response.data)
-        })
-        .catch(error => {
-          console.error(error)
-          return res.json({ error: error}).status(500)
-        });
-      return res.data
+       // Calculate the total length of the form data
+  form.getLength(async (err, length) => {
+    if (err) {
+      console.error('Error calculating form data length:', err);
+      return res.json({ error: err }).status(500);
+    }
+
+   // Update the Content-Length header
+   const headers = {
+    ...form.getHeaders(),
+    'Content-Length': length
+  };
+    axios.post(endpoint, form, {
+        headers:headers,
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+      })
+      .then(response => {
+        console.log(response.data)
+      return res.send(response.data)
+      })
+      .catch(error => {
+        console.error(error)
+        return res.json({ error: error}).status(500)
+      });
+    return res.data
+    
+  })
+ 
     });
 
 
