@@ -126,8 +126,7 @@ app.post('/api/auth/callback', async (req, res) => {
     const form = new FormData();
     form.append('name', 'My Video testing again');
     // Create a writable stream to save the video to disk
-
-const videoWriteStream = fs.createWriteStream(videoFilePath);
+    const videoBuffer = [];
     // Fetch the stream object from Google Drive
     const fileStream = drive.files.get(
       { fileId, alt: "media" },
@@ -139,44 +138,33 @@ const videoWriteStream = fs.createWriteStream(videoFilePath);
       console.log('completely received')
       return res.data
     });
-    // (await fileStream).on('data',async(chunk)=>{
-    //   form.append('video_file', chunk);
-    //   console.log('data ',chunk?.length)
-    // })
-
+    (await fileStream).on('data',async(chunk)=>{
+      
+      console.log('data ',chunk?.length)
+      videoBuffer.push(chunk)
+    })
+    form.append('video_file', videoBuffer);
 // Pipe the Google Drive stream to the video file on disk
-console.log('starting of shit')
-fileStream.data.pipe(videoWriteStream);
 
-videoWriteStream.on('finish', () => {
-  console.log('Video file written to disk:', videoFilePath);
-  form.append('video_file', fs.createReadStream(videoFilePath)); // Reference the file from disk
-  console.log('Form data ready for upload.');
-      // Send the multipart/form-data request to the VK API
-      console.log('Send the multipart/form-data request to the VK API')
-      axios.post(endpoint, form, {
-          headers: {
-            ...form.getHeaders(),
-            'Content-Length': form.getLengthSync(),
-          },
-          maxContentLength: Infinity,
-          maxBodyLength: Infinity,
-        })
-        .then(response => console.log(response.data))
-        .catch(error => console.error(error));
-     // Unlink (delete) the video file from disk
-    fs.unlink(videoFilePath, (unlinkError) => {
-      if (unlinkError) {
-        console.error('Error unlinking video file:', unlinkError);
-      } else {
-        console.log('Video file unlinked from disk:', videoFilePath);
-      }
-    });
-});
-
-videoWriteStream.on('error', (error) => {
-  console.error('Error writing video file to disk:', error);
-});
+console.log('Form data ready for upload.');
+// Send the multipart/form-data request to the VK API
+console.log('Send the multipart/form-data request to the VK API')
+axios.post(endpoint, form, {
+    headers: {
+      ...form.getHeaders(),
+      'Content-Length': form.getLengthSync(),
+    },
+    maxContentLength: Infinity,
+    maxBodyLength: Infinity,
+  })
+  .then(response => {
+    console.log(response.data)
+  return res.send(response.data)
+  })
+  .catch(error => {
+    console.error(error)
+    return res.json({ error: error}).status(500)
+  });
     // Pipe the stream to the form object and then to the VK API endpoint
     // pipeline(
     //   fileStream,
