@@ -85,6 +85,12 @@ const httpAgent = new https.Agent({
   rejectUnauthorized: false
 });
 
+// Route to initiate the OAuth2 authorization flow
+app.get('/', (req, res) => {
+  return res.send('IPO HEWANI SERVER YA D2SERVER')
+});
+
+
 
 // Define API endpoint to generate VK API access token
 app.get('/get-vk-token', async (req, res) => {
