@@ -1,19 +1,13 @@
 const express = require('express')
-const ytdl = require('ytdl-core')
-const mongoose = require('mongoose')
 const cors = require('cors');
-const contentDisposition = require('content-disposition')
-const UniqueStringGenerator = require('unique-string-generator');
 const fs = require('fs');
 const { google } = require("googleapis");
 const { OAuth2Client } = require("google-auth-library");
 const https = require('https');
 const {VK} = require('vk-io');
 const path = require('path');
-const through2 = require('through2');
 const FormData = require('form-data');
 const { pipeline } = require('stream');
-const blurring = require('./routes/create/Ablur')
 
 const app = express()
 // parse application/x-www-form-urlencoded
@@ -33,33 +27,6 @@ app.use((req, res, next) => {
   next();
 });
 
-
-// ONLINE DATABASE CONNECTION STRING
-//  
-
-// mongodb+srv://<username>:<password>@cluster0.hz9ac95.mongodb.net/?retryWrites=true&w=majority ---new temp
-mongoose.connect("mongodb+srv://movietemp1:movietemp1@cluster0.hz9ac95.mongodb.net/?retryWrites=true&w=majority",
-{useNewUrlParser:true,useUnifiedTopology:true},(err)=>{
-    if(err){
-        console.log(err)
-    }
-    else{
-        console.log('online db connected 😋')
-    }
-} )
-
-// OFFLINE DB CONNECT STRINGs
-
-// mongoose.connect('mongodb://localhost:27017/movie_temp_1', {
-//     useNewUrlParser: true,
-//     useUnifiedTopology: true,
-// }, (err) => {
-//     if (err) {
-//         console.log(err)
-//     } else {
-//         console.log('offline db connected')
-//     }
-// })
 
 // Set up the OAuth2 client
 const clientId = "52664846243-b8aushlrclrjme723ao2ih5mjujag1b9.apps.googleusercontent.com";
@@ -201,34 +168,6 @@ app.post('/api/auth/callback', async (req, res) => {
 });
 
 
-app.get('/download',async(req,res)=>{
-      try{
-const url = req.query.url
-const itag = req.query.itag
-const format = req.query.format
-
-console.log('itage ni ',itag, ' url ni ',url)
-const videoId = await ytdl.getURLVideoID(url)
-const info = await ytdl.getBasicInfo(url)
-
- res.setHeader('Content-Disposition', contentDisposition( `bandamovies.com-${UniqueStringGenerator.UniqueString()}-video.${format}`))
- ytdl(url,{
-  quality:itag
- }).on("response", response => {
-  // If you want to set size of file in header
-  // res.setHeader("content-length", response.headers["content-length"]);
-})
-.pipe(res);
-
-      }
-      catch(er){
-        return res.json({error:er}).status(500)
-      }
-})
-
-
-
-app.use('/api/blurring',blurring)
 
 
 const port = process.env.PORT || 4800
