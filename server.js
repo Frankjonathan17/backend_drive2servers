@@ -85,6 +85,7 @@ app.get('/get-vk-token', async (req, res) => {
 });
 
 app.post('/api/auth/callback', async (req, res) => {
+  const videoFilePath = './myVideo.mp4'; // Change this to your desired file path
   try {
     res.set({
       'Connection': 'keep-alive',
@@ -123,7 +124,10 @@ app.post('/api/auth/callback', async (req, res) => {
     let endpoint = uploadServer.upload_url;
     // Create a new FormData object to send the video to VK API
     const form = new FormData();
-    form.append('name', 'My Video');
+    form.append('name', 'My Video testing again');
+    // Create a writable stream to save the video to disk
+
+const videoWriteStream = fs.createWriteStream(videoFilePath);
     // Fetch the stream object from Google Drive
     const fileStream = drive.files.get(
       { fileId, alt: "media" },
@@ -135,35 +139,51 @@ app.post('/api/auth/callback', async (req, res) => {
       console.log('completely received')
       return res.data
     });
-    (await fileStream).on('data',async(chunk)=>{
-      form.append('video_file', chunk);
-      console.log('data ',chunk?.length)
-    })
+    // (await fileStream).on('data',async(chunk)=>{
+    //   form.append('video_file', chunk);
+    //   console.log('data ',chunk?.length)
+    // })
 
+// Pipe the Google Drive stream to the video file on disk
+console.lo('starting of shit')
+fileStream.data.pipe(videoWriteStream);
+
+videoWriteStream.on('finish', () => {
+  console.log('Video file written to disk:', videoFilePath);
+  form.append('video_file', fs.createReadStream(videoFilePath)); // Reference the file from disk
+  console.log('Form data ready for upload.');
+      // Send the multipart/form-data request to the VK API
+      console.log('Send the multipart/form-data request to the VK API')
+      axios.post(endpoint, form, {
+          headers: {
+            ...form.getHeaders(),
+            'Content-Length': form.getLengthSync(),
+          },
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity,
+        })
+        .then(response => console.log(response.data))
+        .catch(error => console.error(error));
+        fs.unlink(videoFilePath)
+});
+
+videoWriteStream.on('error', (error) => {
+  console.error('Error writing video file to disk:', error);
+});
     // Pipe the stream to the form object and then to the VK API endpoint
-    pipeline(
-      fileStream,
-      form,
-      (error) => {
-        if (error) {
-          console.error('Pipeline failed.', error);
-        } else {
-          // Send the multipart/form-data request to the VK API
-          console.log('Send the multipart/form-data request to the VK API')
-          axios.post(endpoint, form, {
-              headers: {
-                ...form.getHeaders(),
-                'Content-Length': form.getLengthSync(),
-              },
-              maxContentLength: Infinity,
-              maxBodyLength: Infinity,
-            })
-            .then(response => console.log(response.data))
-            .catch(error => console.error(error));
-        }
-      }
-    );
+    // pipeline(
+    //   fileStream,
+    //   form,
+    //   (error) => {
+    //     if (error) {
+    //       console.error('Pipeline failed.', error);
+    //     } else {
+      
+    //     }
+    //   }
+    // );
   } catch (error) {
+    fs.unlink(videoFilePath)
     console.error('Error uploading video to VK API', error);
     res.status(500).send('Error uploading video to VK API');
   }
