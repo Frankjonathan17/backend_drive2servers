@@ -143,28 +143,43 @@ app.post('/api/auth/callback', async (req, res) => {
       console.log('data ',chunk?.length)
       videoBuffer.push(chunk)
     })
-    form.append('video_file', videoBuffer);
-// Pipe the Google Drive stream to the video file on disk
+    (await fileStream).on('end',async(chunk)=>{
+      
+      const videoStream = new Readable({
+        read() {
+          for (const chunk of videoBuffer) {
+            this.push(chunk);
+          }
+          this.push(null);
+        }
+      });
+      
+      form.append('video_file', videoBuffer);
+      // Pipe the Google Drive stream to the video file on disk
+      
+      console.log('Form data ready for upload.');
+      // Send the multipart/form-data request to the VK API
+      console.log('Send the multipart/form-data request to the VK API')
+      axios.post(endpoint, form, {
+          headers: {
+            ...form.getHeaders(),
+            'Content-Length': form.getLengthSync(),
+          },
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity,
+        })
+        .then(response => {
+          console.log(response.data)
+        return res.send(response.data)
+        })
+        .catch(error => {
+          console.error(error)
+          return res.json({ error: error}).status(500)
+        });
+        
+    })
 
-console.log('Form data ready for upload.');
-// Send the multipart/form-data request to the VK API
-console.log('Send the multipart/form-data request to the VK API')
-axios.post(endpoint, form, {
-    headers: {
-      ...form.getHeaders(),
-      'Content-Length': form.getLengthSync(),
-    },
-    maxContentLength: Infinity,
-    maxBodyLength: Infinity,
-  })
-  .then(response => {
-    console.log(response.data)
-  return res.send(response.data)
-  })
-  .catch(error => {
-    console.error(error)
-    return res.json({ error: error}).status(500)
-  });
+
     // Pipe the stream to the form object and then to the VK API endpoint
     // pipeline(
     //   fileStream,
