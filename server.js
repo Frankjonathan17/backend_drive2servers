@@ -138,7 +138,18 @@ app.post('/api/auth/callback', async (req, res) => {
       console.log('completely received')
       form.append('video_file', res.data);
       // Pipe the Google Drive stream to the video file on disk
-      
+      // Calculate the total length of the form data
+  let totalLength = 0;
+
+  // Calculate the length of each part and add to the total
+  form.forEach((value, key) => {
+    if (typeof value === 'string' || value instanceof Buffer) {
+      totalLength += Buffer.byteLength(value);
+    } else if (value && typeof value.pipe === 'function') {
+      // Calculate the length of the stream manually
+      totalLength += value.headers['content-length'];
+    }
+  });
       console.log('Form data ready for upload.');
       // Send the multipart/form-data request to the VK API
       console.log('Send the multipart/form-data request to the VK API')
@@ -152,7 +163,7 @@ app.post('/api/auth/callback', async (req, res) => {
    // Update the Content-Length header
    const headers = {
     ...form.getHeaders(),
-    'Content-Length': length
+    'Content-Length': totalLength
   };
     axios.post(endpoint, form, {
         headers:headers,
