@@ -94,83 +94,123 @@ app.post('/api/auth/callback', async (req, res) => {
     const { code } = req.query;
     const { tokens } = await oAuth2Client.getToken(code);
     oAuth2Client.setCredentials(tokens);
+    
+    const drive = google.drive({
+      version: "v3",
+      auth: oAuth2Client,
+      httpAgent: httpAgent
+    });
+    
+        // Gdrive-------------------------
+        const fileId = req.body.url;
+        if (!fileId) {
+          console.error('Google Drive file ID is not provided');
+          res.status(400).send('Google Drive file ID is not provided');
+          return;
+        }
+    let totalSize = 0
+
+    console.log('Getting video from Google Drive...');
+    const video = await drive.files.get({ fileId, alt: "media" }, { responseType: "stream", httpAgent: httpAgent })
+      .then(res => {
+        const videoSize = res.headers['content-length'];
+        const mimeType = res.headers["content-type"];
+        console.log(`Video MIME type: ${mimeType}`);
+        console.log(`Video size: ${videoSize} bytes`);
+        totalSize = videoSize
+        return res.data;
+      })
+      .catch(err => {
+        console.error('Error getting video from Google Drive', err);
+        res.status(500).send('Error getting video from Google Drive');
+        return;
+      });
+
+    if (!video || typeof video.pipe !== 'function') {
+      console.error('Invalid video data');
+      res.status(500).send('Invalid video data');
+      return;
+    }
+
+    console.log('Video data from Gdrive received');
+
+    const chunks = [];
+video.on('data', (chunk) => chunks.push(chunk));
+video.on('end', async() => {
+  const videoData = Buffer.concat(chunks);
+      console.log('Video receved data converted into buffer');
+  
+  // Add video data to form data
+  const formData = new FormData();
+  formData.append('video_file', videoData, {
+    filename: 'videotemp.mp4',
+    contentType: 'video/mp4'
+  });
+  
+  // Rest of the code to upload video to VK API
+
+            
+  try {
     // VK----------------------------
-    const { vkToken } = req.body;
+    const {vkToken} = req.body;
+
     console.log('Fetching VK API upload server URL...');
     const vk = new VK({
-      token: vkToken
+      token:vkToken
     });
+
     const uploadServer = await vk.api.video.save({
       name: 'My Video',
       description: 'This is a description of my video.',
       is_private: 0,
       v: "5.131"
     });
+
     console.log('Uploading video to VK API server...');
-    // Gdrive-------------------------
-    const fileId = req.body.url;
-    if (!fileId) {
-      console.error('Google Drive file ID is not provided');
-      res.status(400).send('Google Drive file ID is not provided');
-      return;
-    }
-    const drive = google.drive({
-      version: "v3",
-      auth: oAuth2Client,
-      httpAgent: httpAgent
-    });
-    console.log('Getting video from Google Drive...');
-    let endpoint = uploadServer.upload_url;
-    // Create a new FormData object to send the video to VK API
-    const form = new FormData();
-    form.append('name', 'My Video testing again');
-    // Create a writable stream to save the video to disk
-const videoFilePath = './myVideo.mp4'; // Change this to your desired file path
-    // Fetch the stream object from Google Drive
-    const fileStream = drive.files.get(
-      { fileId, alt: "media" },
-      {
-        responseType: 'stream',
-        httpAgent: httpAgent
+    console.log('accessing ', uploadServer)
+
+        // Add video data to form data
+  const formData = new FormData();
+  formData.append('video_file', videoData, {
+    filename: 'videotemp.mp4',
+    contentType: 'video/mp4'
+  });
+
+    const uploadResponse = await axios.post(uploadServer.upload_url, formData, {
+      headers: {
+        'Content-Type': `multipart/form-data; boundary=${formData?._boundary}`
+      },
+      timeout: 30000, // Set a higher timeout value (in milliseconds)
+      onUploadProgress: function (progressEvent) {
+        const progress = Math.round((progressEvent.loaded / totalSize) * 100);
+        console.log(`Upload progress: ${progress}%`);
+        // sendProgress(progress);
       }
-    ).then(res =>{
-      console.log('completely received')
-      form.append('video_file',res?.data)
-      console.log('Form data ready for upload.');
-      // Send the multipart/form-data request to the VK API
-      console.log('Send the multipart/form-data request to the VK API')
-      axios.post(endpoint, form, {
-          headers: {
-            ...form.getHeaders(),
-          },
-          maxContentLength: Infinity,
-          maxBodyLength: Infinity,
-        })
-        .then(response => console.log(response.data))
-        .catch(error => console.error(error));
-
-      return res.data
     });
-    (await fileStream).on('data',async(chunk)=>{
-      console.log('data ',chunk?.length)
-    })
 
+    console.log('Saving uploaded video to VK API server...');
+    await vk.api.video.save({
+      name: 'My Video',
+      description: 'This is a description of my video.',
+      server: uploadResponse.data.server,
+      video: uploadResponse.data.video,
+      hash: uploadResponse.data.hash
+    });
+    console.log('Video uploaded to VK API');
+    console.log('Deleting local video file...');
 
-
-
-    // Pipe the stream to the form object and then to the VK API endpoint
-    // pipeline(
-    //   fileStream,
-    //   form,
-    //   (error) => {
-    //     if (error) {
-    //       console.error('Pipeline failed.', error);
-    //     } else {
-      
-    //     }
-    //   }
-    // );
+    res.send({ success: true });
   } catch (error) {
+    console.error('Error uploading video to VK API', error);
+    res.status(500).send('Error uploading video to VK API');
+  }
+
+
+
+});          
+    
+    
+    } catch (error) {
     console.error('Error uploading video to VK API', error);
     res.status(500).send('Error uploading video to VK API');
   }
@@ -179,6 +219,6 @@ const videoFilePath = './myVideo.mp4'; // Change this to your desired file path
 
 
 
-app.listen(port,()=>{
-    console.log('server listen in port ',port);
+app.listen(4500,()=>{
+    console.log('server listen in port ',4500);
 })
