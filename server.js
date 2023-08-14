@@ -17,6 +17,8 @@ app.use(express.urlencoded({
 app.use(cors());
 app.use(express.json())
 
+var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080,
+    ip   = process.env.IP   || process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0';
 
 // Add middleware to set CORS headers
 app.use((req, res, next) => {
@@ -54,7 +56,7 @@ const httpAgent = new https.Agent({
 
 // Route to initiate the OAuth2 authorization flow
 app.get('/', (req, res) => {
-  return res.send('IPO HEWANI SERVER YA D2SERVER')
+res.send('IPO HEWANI SERVER YA D2SERVER')
 });
 
 
@@ -170,7 +172,6 @@ app.post('/api/auth/callback', async (req, res) => {
 
 
 
-const port = process.env.PORT || 4800
 app.listen(port,()=>{
     console.log('server listen in port ',port);
 })
