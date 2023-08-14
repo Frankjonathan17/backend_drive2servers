@@ -145,7 +145,7 @@ const videoWriteStream = fs.createWriteStream(videoFilePath);
     // })
 
 // Pipe the Google Drive stream to the video file on disk
-console.lo('starting of shit')
+console.log('starting of shit')
 fileStream.data.pipe(videoWriteStream);
 
 videoWriteStream.on('finish', () => {
