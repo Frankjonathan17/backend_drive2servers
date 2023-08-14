@@ -138,12 +138,13 @@ app.post('/api/auth/callback', async (req, res) => {
       console.log('completely received')
       return res.data
     });
-    (await fileStream).on('data',async(chunk)=>{
+    fileStream.on('data',async(chunk)=>{
       
       console.log('data ',chunk?.length)
       videoBuffer.push(chunk)
     })
-    (await fileStream).on('end',async(chunk)=>{
+    
+    fileStream.on('end',async(chunk)=>{
       
       const videoStream = new Readable({
         read() {
