@@ -142,7 +142,6 @@ const videoFilePath = './myVideo.mp4'; // Change this to your desired file path
       axios.post(endpoint, form, {
           headers: {
             ...form.getHeaders(),
-            'Content-Length': form.getLengthSync(),
           },
           maxContentLength: Infinity,
           maxBodyLength: Infinity,
