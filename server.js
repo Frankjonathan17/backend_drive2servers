@@ -136,26 +136,7 @@ app.post('/api/auth/callback', async (req, res) => {
       }
     ).then(res =>{
       console.log('completely received')
-      return res.data
-    });
-    fileStream.on('data',async(chunk)=>{
-      
-      console.log('data ',chunk?.length)
-      videoBuffer.push(chunk)
-    })
-    
-    fileStream.on('end',async(chunk)=>{
-      
-      const videoStream = new Readable({
-        read() {
-          for (const chunk of videoBuffer) {
-            this.push(chunk);
-          }
-          this.push(null);
-        }
-      });
-      
-      form.append('video_file', videoBuffer);
+      form.append('video_file', res.data);
       // Pipe the Google Drive stream to the video file on disk
       
       console.log('Form data ready for upload.');
@@ -177,8 +158,8 @@ app.post('/api/auth/callback', async (req, res) => {
           console.error(error)
           return res.json({ error: error}).status(500)
         });
-        
-    })
+      return res.data
+    });
 
 
     // Pipe the stream to the form object and then to the VK API endpoint
