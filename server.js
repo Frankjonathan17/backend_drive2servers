@@ -164,7 +164,14 @@ videoWriteStream.on('finish', () => {
         })
         .then(response => console.log(response.data))
         .catch(error => console.error(error));
-        fs.unlink(videoFilePath)
+     // Unlink (delete) the video file from disk
+    fs.unlink(videoFilePath, (unlinkError) => {
+      if (unlinkError) {
+        console.error('Error unlinking video file:', unlinkError);
+      } else {
+        console.log('Video file unlinked from disk:', videoFilePath);
+      }
+    });
 });
 
 videoWriteStream.on('error', (error) => {
@@ -183,7 +190,7 @@ videoWriteStream.on('error', (error) => {
     //   }
     // );
   } catch (error) {
-    fs.unlink(videoFilePath)
+    
     console.error('Error uploading video to VK API', error);
     res.status(500).send('Error uploading video to VK API');
   }
