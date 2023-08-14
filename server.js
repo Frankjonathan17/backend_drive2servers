@@ -65,8 +65,8 @@ res.send('IPO HEWANI SERVER YA D2SERVER')
 app.get('/get-vk-token', async (req, res) => {
   try {
     // Make a request to the VK API to generate an access token
-    let urlRed = 'https://backend-drive-2-tube.onrender.com/get-vk-token'
-    urlRed ='http://localhost:4500/get-vk-token'
+    let urlRed = 'https://thoughtful-gold-leg-warmers.cyclic.app/get-vk-token'
+   // urlRed ='http://localhost:8080/get-vk-token'
     const response = await axios.get('https://oauth.vk.com/access_token', {
       params: {
         client_id:'51571058',
