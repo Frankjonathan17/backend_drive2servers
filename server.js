@@ -108,12 +108,19 @@ app.post('/api/auth/callback', async (req, res) => {
     });
     console.log('Uploading video to VK API server...');
     // Gdrive-------------------------
-    const fileId = req.body.url;
-    if (!fileId) {
-      console.error('Google Drive file ID is not provided');
-      res.status(400).send('Google Drive file ID is not provided');
-      return;
-    }
+    const drive = google.drive({
+      version: "v3",
+      auth: oAuth2Client,
+      httpAgent: httpAgent
+    });
+    
+        // Gdrive-------------------------
+        const fileId = req.body.url;
+        if (!fileId) {
+          console.error('Google Drive file ID is not provided');
+          res.status(400).send('Google Drive file ID is not provided');
+          return;
+        }
     let totalSize = 0
 
     console.log('Getting video from Google Drive...');
