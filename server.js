@@ -138,6 +138,7 @@ app.post('/api/auth/callback', async (req, res) => {
 video.on('data', (chunk) => chunks.push(chunk));
 video.on('end', async() => {
   const videoData = Buffer.concat(chunks);
+  chunks=[]
       console.log('Video receved data converted into buffer');
 
   // Rest of the code to upload video to VK API
@@ -177,6 +178,10 @@ video.on('end', async() => {
       onUploadProgress: function (progressEvent) {
         const progress = Math.round((progressEvent.loaded / totalSize) * 100);
         console.log(`Upload progress: ${progress}%`);
+        if(progress===100){
+          videoData =null
+          chunks=[]
+        }
         // sendProgress(progress);
       }
     });
