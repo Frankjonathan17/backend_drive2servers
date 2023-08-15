@@ -197,7 +197,6 @@ video.on('end', async() => {
       hash: uploadResponse.data.hash
     });
     console.log('Video uploaded to VK API');
-    console.log('Deleting local video file...');
 
     res.send({ success: true });
   } catch (error) {
