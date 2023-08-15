@@ -111,89 +111,101 @@ app.post('/api/auth/callback', async (req, res) => {
     let totalSize = 0
 
     console.log('Getting video from Google Drive...');
-    const videoReadStream = await drive.files.get({ fileId, alt: "media" }, { responseType: "stream", httpAgent: httpAgent })
+    const video = await drive.files.get({ fileId, alt: "media" }, { responseType: "stream", httpAgent: httpAgent })
       .then(res => {
         const videoSize = res.headers['content-length'];
         const mimeType = res.headers["content-type"];
         console.log(`Video MIME type: ${mimeType}`);
         console.log(`Video size: ${videoSize} bytes`);
-        totalSize = videoSize;
-    
-        const videoWriteStream = fs.createWriteStream('video_temp.mp4'); // Adjust the file name and path as needed
-        res.data.pipe(videoWriteStream);
-    
-        return videoWriteStream;
+        totalSize = videoSize
+        return res.data;
       })
       .catch(err => {
         console.error('Error getting video from Google Drive', err);
         res.status(500).send('Error getting video from Google Drive');
         return;
       });
-    
+
+    if (!video || typeof video.pipe !== 'function') {
+      console.error('Invalid video data');
+      res.status(500).send('Invalid video data');
+      return;
+    }
+
     console.log('Video data from Gdrive received');
-    
-    videoReadStream.on('finish', async() => {
-      console.log('Video received and saved to disk');
-    
-      // Rest of the code to upload video to VK API
-      try {
-        // VK----------------------------
-        const { vkToken } = req.body;
-    
-        console.log('Fetching VK API upload server URL...');
-        const vk = new VK({
-          token: vkToken
-        });
-    
-        const uploadServer = await vk.api.video.save({
-          name: 'My Video',
-          description: 'This is a description of my video.',
-          is_private: 0,
-          v: "5.131"
-        });
-    
-        console.log('Uploading video to VK API server...');
-    
-        const uploadResponse = await pipeline(
-          fs.createReadStream('video_temp.mp4'),
-          axios.post(uploadServer.upload_url, {
-            headers: {
-              'Content-Type': 'multipart/form-data'
-            },
-            timeout: 30000, // Set a higher timeout value (in milliseconds)
-            onUploadProgress: function (progressEvent) {
-              const progress = Math.round((progressEvent.loaded / totalSize) * 100);
-              console.log(`Upload progress: ${progress}%`);
-            }
-          })
-        );
-    
-        console.log('Saving uploaded video to VK API server...');
-        await vk.api.video.save({
-          name: 'My Video',
-          description: 'This is a description of my video.',
-          server: uploadResponse.data.server,
-          video: uploadResponse.data.video,
-          hash: uploadResponse.data.hash
-        });
-    
-    
-    // Unlink (delete) the video file from disk
-    fs.unlink('video_temp.mp4', (unlinkError) => {
-      if (unlinkError) {
-        console.error('Error unlinking video file:', unlinkError);
-      } else {
-        console.log('Video file unlinked (deleted) from disk');
+
+    const chunks = [];
+video.on('data', (chunk) => chunks.push(chunk));
+video.on('end', async() => {
+  const videoData = Buffer.concat(chunks);
+       chunks=[]
+      console.log('Video receved data converted into buffer');
+
+  // Rest of the code to upload video to VK API
+
+            
+  try {
+    // VK----------------------------
+    const {vkToken} = req.body;
+
+    console.log('Fetching VK API upload server URL...');
+    const vk = new VK({
+      token:vkToken
+    });
+
+    const uploadServer = await vk.api.video.save({
+      name: 'My Video',
+      description: 'This is a description of my video.',
+      is_private: 0,
+      v: "5.131"
+    });
+
+    console.log('Uploading video to VK API server...');
+    console.log('accessing ', uploadServer)
+
+        // Add video data to form data
+  const formData = new FormData();
+  formData.append('video_file', videoData, {
+    filename: 'videotemp.mp4',
+    contentType: 'video/mp4'
+  });
+
+    const uploadResponse = await axios.post(uploadServer.upload_url, formData, {
+      headers: {
+        'Content-Type': `multipart/form-data; boundary=${formData?._boundary}`
+      },
+      timeout: 30000, // Set a higher timeout value (in milliseconds)
+      onUploadProgress: function (progressEvent) {
+        const progress = Math.round((progressEvent.loaded / totalSize) * 100);
+        console.log(`Upload progress: ${progress}%`);
+        if(progress===100){
+          videoData =null
+          chunks=[]
+        }
+        // sendProgress(progress);
       }
     });
-    
-        console.log('Video uploaded to VK API');
-        res.send({ success: true });
-      } catch (error) {
-        console.error('Error uploading video to VK API', error);
-        res.status(500).send('Error uploading video to VK API');
-      }
-    });         
+    videoData =null
+    chunks=[]
+    console.log('Saving uploaded video to VK API server...');
+    await vk.api.video.save({
+      name: 'My Video',
+      description: 'This is a description of my video.',
+      server: uploadResponse.data.server,
+      video: uploadResponse.data.video,
+      hash: uploadResponse.data.hash
+    });
+    console.log('Video uploaded to VK API');
+
+    res.send({ success: true });
+  } catch (error) {
+    console.error('Error uploading video to VK API', error);
+    res.status(500).send('Error uploading video to VK API');
+  }
+
+
+
+});          
     
     
     } catch (error) {
