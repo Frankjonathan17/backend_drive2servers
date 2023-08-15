@@ -139,14 +139,7 @@ video.on('data', (chunk) => chunks.push(chunk));
 video.on('end', async() => {
   const videoData = Buffer.concat(chunks);
       console.log('Video receved data converted into buffer');
-  
-  // Add video data to form data
-  const formData = new FormData();
-  formData.append('video_file', videoData, {
-    filename: 'videotemp.mp4',
-    contentType: 'video/mp4'
-  });
-  
+
   // Rest of the code to upload video to VK API
 
             
@@ -187,7 +180,8 @@ video.on('end', async() => {
         // sendProgress(progress);
       }
     });
-
+    videoData =null
+    chunks=[]
     console.log('Saving uploaded video to VK API server...');
     await vk.api.video.save({
       name: 'My Video',
