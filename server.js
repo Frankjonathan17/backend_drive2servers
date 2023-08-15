@@ -100,12 +100,8 @@ app.post('/api/auth/callback', async (req, res) => {
     const vk = new VK({
       token: vkToken
     });
-    const uploadServer = await vk.api.video.save({
-      name: 'My Video',
-      description: 'This is a description of my video.',
-      is_private: 0,
-      v: "5.131"
-    });
+
+    
     console.log('Uploading video to VK API server...');
     // Gdrive-------------------------
     const drive = google.drive({
