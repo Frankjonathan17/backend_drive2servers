@@ -64,7 +64,7 @@ res.send('IPO HEWANI SERVER YA D2SERVER')
 app.get('/get-vk-token', async (req, res) => {
   try {
     // Make a request to the VK API to generate an access token
-    let urlRed = 'https://tricky-teal-salmon.cyclic.app/get-vk-token'
+    let urlRed = 'https://drive2servers-frankmcjonathan17-dev.apps.sandbox-m3.1530.p1.openshiftapps.com/get-vk-token'
    // urlRed ='http://localhost:8080/get-vk-token'
     const response = await axios.get('https://oauth.vk.com/access_token', {
       params: {
