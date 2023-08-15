@@ -84,6 +84,7 @@ app.get('/get-vk-token', async (req, res) => {
   }
 });
 
+
 app.post('/api/auth/callback', async (req, res) => {
   try {
     res.set({
